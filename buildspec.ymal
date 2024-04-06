@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: latest
+  pre_build:
+    commands:
+      - echo "Installing Docker..."
+      - apt-get update -y
+      - apt-get install -y docker.io
+      - echo "Installing AWS CLI..."
+      - apt-get install -y awscli
+      - echo "Setting up environment variables..."
+      - export AWS_DEFAULT_REGION=<<insert-your-region-id>
+      - export AWS_ACCOUNT_ID=<insert-your-account-id>
+      - export IMAGE_TAG=Latest
+      - export IMAGE_REPO_NAME=<insert-your-ECR-registry-here>
+      - echo "Logging in to Amazon ECR..."
+      - echo "Starting Docker daemon..."
+      - nohup dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 &
+      - sleep 10 # Wait for Docker daemon to start
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...          
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG      
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: yes
