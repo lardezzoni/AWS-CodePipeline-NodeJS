@@ -1,0 +1,14 @@
+FROM node:20.11.1
+ 
+WORKDIR <insert-your-directory-nodejs-name-here>
+ 
+COPY package.json package.json
+COPY package-lock.json package-lock.json
+ 
+RUN npm install
+ 
+COPY . .
+ 
+CMD [ "node", "server.js" ]
+
+EXPOSE <expose-your-server-port-here>
